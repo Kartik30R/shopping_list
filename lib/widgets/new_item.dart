@@ -83,6 +83,7 @@ void _saveItem(){
                               ),
                               Text(category.value.title),
                             ]))
+ //how onChanged executing without setstate?                           
                     ], onChanged: (value) {}),
                   )
                 ],
