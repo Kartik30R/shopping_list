@@ -18,17 +18,40 @@ class NewItem extends StatefulWidget {
 
 class _NewItemState extends State<NewItem> {
   final _formkey = GlobalKey<FormState>();
-  var _enteredName='';
-  var _enteredQuantity=1;
+  var _enteredName = '';
+  var _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
+  var _isSending =false;
 
-void _saveItem(){
-  if(_formkey.currentState!.validate())
-  
-  _formkey.currentState!.save();
+  void _saveItem() async {
+    if (_formkey.currentState!.validate()) _formkey.currentState!.save();
+    setState(() {
+      _isSending=true;
+    });
+    final url = Uri.https(
+        'shopping-d6775-default-rtdb.firebaseio.com', 'shopping-list.json');
+    final response = await http.post(url,
+        headers: {
+          'content-Type': 'application/json',
+        },
+        body: json.encode({
+          'name': _enteredName,
+          'quantity': _enteredQuantity,
+          'category': _selectedCategory.title
+        }));
 
-  Navigator.of(context).pop(GroceryItem(id: DateTime.now().toString(), name: _enteredName, quantity: _enteredQuantity, category: _selectedCategory));
-}
+    final Map<String, dynamic> resData = json.decode(response.body);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop(GroceryItem(
+        id: resData['name'],
+        name: _enteredName,
+        quantity: _enteredQuantity,
+        category: _selectedCategory));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,13 +73,12 @@ void _saveItem(){
                       value.isEmpty ||
                       value.trim().length <= 1 ||
                       value.trim().length > 50) {
-                        return'Must be between 1 and 50 characters';
-                      }
-                      return null;
+                    return 'Must be between 1 and 50 characters';
+                  }
+                  return null;
                 },
-                onSaved: (value){
-
-                  _enteredName =value!;
+                onSaved: (value) {
+                  _enteredName = value!;
                 },
               ),
               Row(
@@ -67,19 +89,19 @@ void _saveItem(){
                       keyboardType: TextInputType.number,
                       decoration:
                           const InputDecoration(label: Text('quantity')),
-                      initialValue:_enteredQuantity.toString(),
-                      validator:(value) {
-                  if (value == null ||
-                      value.isEmpty ||
-                      int.tryParse(value) == null||
-                      int.tryParse(value)! <=0) {
-                        return'Must be valid number';
-                      }
-                      return null;
-                }, 
-                onSaved: (value){
-                  _enteredQuantity=int.parse(value!);
-                },
+                      initialValue: _enteredQuantity.toString(),
+                      validator: (value) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            int.tryParse(value) == null ||
+                            int.tryParse(value)! <= 0) {
+                          return 'Must be valid number';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) {
+                        _enteredQuantity = int.parse(value!);
+                      },
                     ),
                   ),
                   const SizedBox(
@@ -87,30 +109,29 @@ void _saveItem(){
                   ),
                   Expanded(
                     child: DropdownButtonFormField(
-                      value: _selectedCategory,
-                      items: [
-                      for (final category in categories.entries)
-                        DropdownMenuItem(
-                           
-                            value: category.value,
-                            child: Row(children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                color: category.value.color,
-                              ),
-                              const SizedBox(
-                                width: 6,
-                              ),
-                              Text(category.value.title),
-                            ]))
- //how onChanged executing without setstate?                           
-                    ], onChanged: (value) {
-                      setState(() {
-                         _selectedCategory=value!;
-                      });
-                     
-                    }),
+                        value: _selectedCategory,
+                        items: [
+                          for (final category in categories.entries)
+                            DropdownMenuItem(
+                                value: category.value,
+                                child: Row(children: [
+                                  Container(
+                                    width: 16,
+                                    height: 16,
+                                    color: category.value.color,
+                                  ),
+                                  const SizedBox(
+                                    width: 6,
+                                  ),
+                                  Text(category.value.title),
+                                ]))
+                          //how onChanged executing without setstate?
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCategory = value!;
+                          });
+                        }),
                   )
                 ],
               ),
@@ -120,8 +141,12 @@ void _saveItem(){
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed:(){_formkey.currentState!.reset();} , child: Text('reset')),
-                  ElevatedButton(onPressed: _saveItem, child: Text('add Item'))
+                  TextButton(
+                      onPressed:_isSending? null: () {
+                        _formkey.currentState!.reset();
+                      },
+                      child: Text('reset')),
+                  ElevatedButton(onPressed:_isSending ? null: _saveItem, child:_isSending? SizedBox(height: 16,width: 16,child: CircularProgressIndicator(),) :Text('add Item'))
                 ],
               )
             ],
@@ -131,54 +156,6 @@ void _saveItem(){
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // The value property is a critical part of each DropdownMenuItem as it indicates what value is associated with that specific item. When a user selects a particular item from the dropdown list, the corresponding value of that item will be passed to the onChanged callback.
 
